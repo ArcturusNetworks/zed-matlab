@@ -37,6 +37,7 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
     RuntimeParameters.sensing_mode = 0; % STANDARD sensing mode
     
     key = 1;
+    img_num = 0;
     % loop over frames, till Esc is pressed
     while (key ~= 27)
         % grab the current image and compute the depth
@@ -54,18 +55,26 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
             image_depth = mexZED('retrieveImage', 9); %depth
             % retrieve the real depth, resized
             depth = mexZED('retrieveMeasure', 1, requested_depth_size(1), requested_depth_size(2)); %depth
+            disparity = mexZED('retrieveMeasure', 0, requested_depth_size(1), requested_depth_size(2)); %disparity
+            disparity = double(disparity * -1.0);
 
-            % display
-            subplot(2,2,1)
+            % Convert nan/inf to 0
+            disparity(~(isfinite(disparity))) = 0;
+            %disparity(isnan(disparity)) = 0;
+            %disparity(isinf(disparity)) = 0;
+
+            t_disparity = t_disp(disparity);
+
+            subplot(4,2,1)
             imshow(image_left);
             title('Image Left')
-            subplot(2,2,2)
+            subplot(4,2,2)
             imshow(image_right);
             title('Image Right')
-            subplot(2,2,3)
+            subplot(4,2,3)
             imshow(image_depth);
             title('Depth')
-            subplot(2,2,4)
+            subplot(4,2,4)
             % Compute the depth histogram
             val_ = find(isfinite(depth(:))); % handle wrong depth values
             depth_v = depth(val_);
@@ -73,6 +82,25 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
             bar(binranges,bincounts,'histc')
             title('Depth histogram')
             xlabel('meters')
+            subplot(4,2,5)
+            imshow(depth);
+            title('Depth Raw')
+            subplot(4,2,6)
+            imshow(disparity);
+            title('Disparity Raw')
+
+            subplot(4,2,7);
+            imshow(disparity, [],'Colormap',jet(4096));
+            title('Disparity Map');
+            subplot(4,2,8);
+            imshow(t_disparity,[],'Colormap',jet(4096));
+            title('T Disparity Map');
+
+            % Write rgb and t_disp to png
+            img_name = [num2str(img_num) '.png'];
+            imwrite(t_disparity, img_name);
+
+            img_num = img_num + 1;       
 
             drawnow; %this checks for interrupts
             key = uint8(get(f,'CurrentCharacter'));
