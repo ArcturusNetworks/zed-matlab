@@ -1,0 +1,21 @@
+version: '2'
+services:
+  svo-recorder:
+    image:
+      stereolabs/zed:3.6-py-devel-jetson-jp4.6
+    network_mode:
+      "host"
+    command:
+      bash -c "python3 -u svo_recorder.py"
+    environment:
+      - SP_LOGGING_LEVEL=INFO
+    volumes:
+      - "/home/user/Developer:/src"
+      - "/usr/local/zed/settings:/usr/local/zed/settings"
+      - "/dev:/dev"
+    working_dir:
+      "/src/depth-sensing"
+    restart:
+      unless-stopped
+    privileged:
+      true
