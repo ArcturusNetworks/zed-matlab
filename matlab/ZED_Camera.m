@@ -8,11 +8,12 @@ clear mex; clear functions; clear all;
 % values as enum number, defines in : sl/defines.hpp
 % or from https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html
 
-InitParameters.camera_resolution = 2; %HD720
-InitParameters.camera_fps = 60;
+InitParameters.camera_resolution = 2; %HD720 = 2
+InitParameters.camera_fps = 30;
 InitParameters.coordinate_units = 2; %METER
 InitParameters.depth_mode = 1; %PERFORMANCE
-%InitParameters.svo_input_filename = '../mySVOfile.svo'; % Enable SVO playback
+%InitParameters.svo_input_filename = './mySVOfile.svo'; % Enable SVO playback
+InitParameters.depth_minimum_distance = 0.5;% Define maximum depth (in METER)
 InitParameters.depth_maximum_distance = 7;% Define maximum depth (in METER)
 result = mexZED('open', InitParameters);
 
@@ -30,9 +31,16 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
     % (optional) Get number of frames (if SVO)
     nbFrame = mexZED('getSVONumberOfFrames');    
     
+    % set colormap for saving transformed disparity maps
+    cmap = jet(256);
+
     % Create Figure and wait for keyboard interruption to quit
+    x0=10;
+    y0=10;
+    width=1000;
+    height=2000;
     f = figure('name','ZED SDK : Images and Depth','NumberTitle','off','keypressfcn',@(obj,evt) 0);
-        
+    set(gcf,'position',[x0,y0,width,height])   
     % Setup runtime parameters
     RuntimeParameters.sensing_mode = 0; % STANDARD sensing mode
     
@@ -43,10 +51,12 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
         % grab the current image and compute the depth
         result = mexZED('grab', RuntimeParameters);        
         if(strcmp(result,'SUCCESS'))
-            % retrieve letf image
+            % retrieve left image
             image_left = mexZED('retrieveImage', 2); %left
             % retrieve right image
             image_right = mexZED('retrieveImage', 1); %right
+            % retrieve left image bgra
+            image_left_bgra = mexZED('retrieveImage', 0) %left bgra
             
             % image timestamp
             im_ts = mexZED('getTimestamp', 0) 
@@ -55,15 +65,56 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
             image_depth = mexZED('retrieveImage', 9); %depth
             % retrieve the real depth, resized
             depth = mexZED('retrieveMeasure', 1, requested_depth_size(1), requested_depth_size(2)); %depth
-            disparity = mexZED('retrieveMeasure', 0, requested_depth_size(1), requested_depth_size(2)); %disparity
-            disparity = double(disparity * -1.0);
+            % retrieve disparity measure
+            disparity = mexZED('retrieveMeasure', 0, 1280, 720); %disparity
+
+            %disparity = disparity * (1./96.0);
+            %disparity = disparity * 255.0;
 
             % Convert nan/inf to 0
+            disparity = double(disparity * -1.0);
             disparity(~(isfinite(disparity))) = 0;
-            %disparity(isnan(disparity)) = 0;
-            %disparity(isinf(disparity)) = 0;
 
+            tic;
+            disp('t_disp');
             t_disparity = t_disp(disparity);
+            toc;
+            
+            % save transformed disparity variable (.mat format)
+            %save('t_disparity.mat', 't_disparity');
+
+            % remove alpha channel from left image
+            %image_left_bgr = image_left_bgra(:,:,:,1);
+            image_left_bgr = image_left_bgra;
+            % convert bgr to rgb
+            image_left_rgb(:,:,1) = image_left_bgr(:,:,3);
+            image_left_rgb(:,:,2) = image_left_bgr(:,:,2);
+            image_left_rgb(:,:,3) = image_left_bgr(:,:,1);
+
+            % save rgb and t_disp (with colormap) as png
+            t_disp_path = ['./output/t_disp/' num2str(img_num) '.png'];
+            rgb_path = ['./output/rgb/' num2str(img_num) '.png']
+            
+            t_disparity = t_disparity * (1./96);
+            t_disparity = t_disparity .* 255;
+
+            %imwrite(t_disparity, colormap(cmap), t_disp_path, 'BitDepth', 8);
+            %imwrite(t_disparity, colormap(cmap), t_disp_path);
+            imwrite(t_disparity, colormap(flipud(cmap)), t_disp_path);
+            %imwrite(image_left_rgb, rgb_path, 'BitDepth', 8);
+            imwrite(image_left_bgra, rgb_path);
+
+            %{
+            cmap = jet(4096);
+            % jetind = gray2ind(t_disparity, cmap); % gray2ind requires
+            % 'Image Processing Toolbox'
+            rgb = cat(3, t_disparity, t_disparity, t_disparity);
+            jetind = rgb2ind(rgb, cmap);
+            t_disparity_cmap = ind2rgb(jetind,cmap);
+            %imwrite(t_disparity,'Colormap',jet(4096), img_name);
+            %imwrite(t_disparity,jet(4096),img_name);
+            %}
+
 
             subplot(4,2,1)
             imshow(image_left);
@@ -96,11 +147,11 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
             imshow(t_disparity,[],'Colormap',jet(4096));
             title('T Disparity Map');
 
-            % Write rgb and t_disp to png
-            img_name = [num2str(img_num) '.png'];
-            imwrite(t_disparity, img_name);
+          
+            
+            img_num = img_num + 1;   
 
-            img_num = img_num + 1;       
+            clear disparity t_disparity t_disparity_cmap rgb jetind;
 
             drawnow; %this checks for interrupts
             key = uint8(get(f,'CurrentCharacter'));
