@@ -13,7 +13,7 @@ InitParameters.camera_fps = 30;
 InitParameters.coordinate_units = 2; %METER
 InitParameters.depth_mode = 1; %PERFORMANCE
 %InitParameters.svo_input_filename = './mySVOfile.svo'; % Enable SVO playback
-InitParameters.depth_minimum_distance = 0.5;% Define maximum depth (in METER)
+InitParameters.depth_minimum_distance = 0.15;% Define maximum depth (in METER)
 InitParameters.depth_maximum_distance = 7;% Define maximum depth (in METER)
 result = mexZED('open', InitParameters);
 
@@ -52,11 +52,11 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
         result = mexZED('grab', RuntimeParameters);        
         if(strcmp(result,'SUCCESS'))
             % retrieve left image
-            image_left = mexZED('retrieveImage', 2); %left
+            image_left = mexZED('retrieveImage', 2); %left gray
             % retrieve right image
             image_right = mexZED('retrieveImage', 1); %right
             % retrieve left image bgra
-            image_left_bgra = mexZED('retrieveImage', 0) %left bgra
+            image_left_rgb = mexZED('retrieveImage', 0); %left rgb
             
             % image timestamp
             im_ts = mexZED('getTimestamp', 0) 
@@ -83,17 +83,9 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
             % save transformed disparity variable (.mat format)
             %save('t_disparity.mat', 't_disparity');
 
-            % remove alpha channel from left image
-            %image_left_bgr = image_left_bgra(:,:,:,1);
-            image_left_bgr = image_left_bgra;
-            % convert bgr to rgb
-            image_left_rgb(:,:,1) = image_left_bgr(:,:,3);
-            image_left_rgb(:,:,2) = image_left_bgr(:,:,2);
-            image_left_rgb(:,:,3) = image_left_bgr(:,:,1);
-
             % save rgb and t_disp (with colormap) as png
             t_disp_path = ['./output/t_disp/' num2str(img_num) '.png'];
-            rgb_path = ['./output/rgb/' num2str(img_num) '.png']
+            rgb_path = ['./output/rgb/' num2str(img_num) '.png'];
             
             t_disparity = t_disparity * (1./96);
             t_disparity = t_disparity .* 255;
@@ -102,7 +94,7 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
             %imwrite(t_disparity, colormap(cmap), t_disp_path);
             imwrite(t_disparity, colormap(flipud(cmap)), t_disp_path);
             %imwrite(image_left_rgb, rgb_path, 'BitDepth', 8);
-            imwrite(image_left_bgra, rgb_path);
+            imwrite(image_left_rgb, rgb_path);
 
             %{
             cmap = jet(4096);
