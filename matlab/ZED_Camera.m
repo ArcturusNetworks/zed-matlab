@@ -12,8 +12,7 @@ InitParameters.camera_fps = 15;
 InitParameters.coordinate_units = 2; %0=MM 1=CM 2=M 3=IN 4=FT
 InitParameters.depth_mode = 3; %0=NONE 1=PERFORMANCE 2=QUALITY 3=ULTRA
 %InitParameters.svo_input_filename = '/home/harshad/Downloads/2022_Jan_19_Wed_21_52_repaired.svo'; % Enable SVO playback
-InitParameters.depth_minimum_distance = 0;% Define maximum depth
-InitParameters.depth_maximum_distance = 2;% Define maximum depth
+InitParameters.depth_minimum_distance = 0;% Define maximum dept
 result = mexZED('open', InitParameters);
 
 if(strcmp(result,'SUCCESS')) % the Camera is open
@@ -55,11 +54,13 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
         % grab the current image and compute the depth
         result = mexZED('grab', RuntimeParameters);
         if(strcmp(result,'SUCCESS'))
+
             image_left = mexZED('retrieveImage', 0, requested_depth_size(1), requested_depth_size(2));
             image_left_cropped = image_left;
             % [image_left_cropped,rect] = imcrop(image_left);
             [image_left_cropped, rect] = imcrop(image_left, crop_rect);
             im_ts = mexZED('getTimestamp', 0);
+
             
             depth = mexZED('retrieveImage', 9, requested_depth_size(1), requested_depth_size(2));
             disparity = mexZED('retrieveMeasure', 0, requested_depth_size(1), requested_depth_size(2));
@@ -85,6 +86,7 @@ if(strcmp(result,'SUCCESS')) % the Camera is open
 
             subplot(3,1,1)
             imshow(image_left_cropped);
+
             title('Image Left')
 
             subplot(3,1,2);
