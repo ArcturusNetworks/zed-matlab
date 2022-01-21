@@ -13,6 +13,7 @@ InitParameters.coordinate_units = 2; %0=MM 1=CM 2=M 3=IN 4=FT
 InitParameters.depth_mode = 3; %0=NONE 1=PERFORMANCE 2=QUALITY 3=ULTRA
 %InitParameters.svo_input_filename = '/home/harshad/Downloads/2022_Jan_19_Wed_21_52_repaired.svo'; % Enable SVO playback
 InitParameters.depth_minimum_distance = 0;% Define maximum dept
+InitParameters.depth_maximum_distance = 7;% Define maximum dept
 result = mexZED('open', InitParameters);
 
 if(strcmp(result,'SUCCESS')) % the Camera is open
