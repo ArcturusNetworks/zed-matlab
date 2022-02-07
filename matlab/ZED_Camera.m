@@ -16,7 +16,7 @@ end
 InitParameters.camera_resolution = 0; %0=2k 1=1080P 2=HD720P
 InitParameters.camera_fps = 60;
 InitParameters.coordinate_units = 2; %0=MM 1=CM 2=M 3=IN 4=FT
-InitParameters.depth_mode = 3; %0=NONE 1=PERFORMANCE 2=QUALITY 3=ULTRA
+InitParameters.depth_mode = 1; %0=NONE 1=PERFORMANCE 2=QUALITY 3=ULTRA
 windowName = 'ZED Camera';
 if (~mexZED('isZEDconnected'))
     svofiles = dir("*.svo");
@@ -24,7 +24,8 @@ if (~mexZED('isZEDconnected'))
         fprintf('Unable to find any .svo files. Exiting.');
     else
         % InitParameters.svo_input_filename = [svofiles(1).name];
-        InitParameters.svo_input_filename = ['HD2K_SN39380257_17-13-22.svo'];
+        %InitParameters.svo_input_filename = ['HD2K_SN39380257_17-13-22.svo'];
+        InitParameters.svo_input_filename = ['HD720_SN39380257_17-12-27.svo'];
         windowName = svofiles(1).name;
     end
 end
@@ -46,7 +47,8 @@ try
         nbFrame = mexZED('getSVONumberOfFrames');    
         
         % set colormap for saving transformed disparity maps
-        cmap = jet(256);
+        load("CustomColorMap.mat");
+        cmap = CustomColorMap;
     
         % Create Figure and wait for keyboard interruption to quit
         x0=0;
@@ -111,7 +113,7 @@ try
                 title('Disparity');
     
                 subplot(2,2,4);
-                imshow(t_disparity,[0 max(max(t_disparity))],'Colormap',jet(4096));
+                imshow(rescale(t_disparity).*255, [], 'Colormap',cmap);
                 colorbar;
                 title('T Disparity Map');
                 
@@ -165,7 +167,7 @@ try
                         mexZED('setCameraSettings', 'aec_agc_roi', roi);
                     
                     elseif (key == 's')
-                        imwrite(rescale(t_disparity).*255, colormap(flipud(cmap)), t_disp_path);
+                        imwrite(rescale(t_disparity).*255, cmap, t_disp_path);
                         imwrite(image_left, rgb_path);
                         fprintf("images saved\n");
                     
